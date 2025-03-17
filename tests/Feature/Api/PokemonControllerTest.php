@@ -40,9 +40,9 @@ class PokemonControllerTest extends TestCase
     /** @test */
     public function it_can_filter_pokemons_by_type()
     {
-        Pokemon::factory()->create(['type' => 'grass']);
-        Pokemon::factory()->create(['type' => 'fire']);
-        Pokemon::factory()->create(['type' => 'water']);
+        Pokemon::factory()->create(['types' => ['grass']]);
+        Pokemon::factory()->create(['types' => ['fire']]);
+        Pokemon::factory()->create(['types' => ['water']]);
         
         $response = $this->getJson('/api/pokemons?type=fire');
         
@@ -56,22 +56,25 @@ class PokemonControllerTest extends TestCase
         $pokemon = Pokemon::factory()->create([
             'api_id' => 25,
             'name' => 'pikachu',
-            'type' => 'electric',
+            'types' => ['electric'],
             'height' => 4,
             'weight' => 60,
+            'abilities' => ['static']
         ]);
         
         $response = $this->getJson('/api/pokemons/' . $pokemon->api_id);
         
         $response->assertStatus(200);
         $response->assertJson([
-            'id' => $pokemon->api_id,
+            'id' => $pokemon->id,
+            'api_id' => $pokemon->api_id,
             'name' => 'pikachu',
-            'type' => 'electric',
+            'types' => ['electric'],
             'height' => 4,
             'height_cm' => 40,
             'weight' => 60,
             'weight_kg' => 6.0,
+            'abilities' => ['static']
         ]);
     }
     
@@ -96,9 +99,10 @@ class PokemonControllerTest extends TestCase
         $pokemonData = [
             'api_id' => 999,
             'name' => $uniquePokemonName,
-            'type' => 'test',
+            'types' => ['test'],
             'height' => 10,
-            'weight' => 10
+            'weight' => 10,
+            'abilities' => ['test-ability']
         ];
         
         // Mock do serviço de API

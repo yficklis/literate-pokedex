@@ -15,9 +15,10 @@ return new class extends Migration
             $table->id();
             $table->integer('api_id')->unique();
             $table->string('name');
-            $table->string('type');
+            $table->json('types');
             $table->integer('height'); // em decímetros (será convertido para centímetros na aplicação)
             $table->integer('weight'); // em hectogramas (será convertido para quilos na aplicação)
+            $table->json('abilities')->nullable();
             $table->string('image_url')->nullable();
             $table->timestamps();
         });

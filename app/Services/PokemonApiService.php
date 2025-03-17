@@ -102,19 +102,27 @@ class PokemonApiService
      */
     private function storePokemon(array $data): Pokemon
     {
-        // Pega apenas o primeiro tipo, conforme especificado nos requisitos
-        $type = isset($data['types'][0]['type']['name']) 
-            ? $data['types'][0]['type']['name'] 
-            : 'unknown';
+        // Extrai os tipos do Pokémon
+        $types = [];
+        foreach ($data['types'] as $typeData) {
+            $types[] = $typeData['type']['name'];
+        }
+        
+        // Extrai as habilidades do Pokémon
+        $abilities = [];
+        foreach ($data['abilities'] as $abilityData) {
+            $abilities[] = $abilityData['ability']['name'];
+        }
         
         return Pokemon::updateOrCreate(
             ['api_id' => $data['id']],
             [
-                'name' => $data['name'],
-                'type' => $type,
+                'name' => ucfirst($data['name']),
+                'types' => $types,
                 'height' => $data['height'],
                 'weight' => $data['weight'],
-                'image_url' => $data['sprites']['front_default'] ?? null,
+                'abilities' => $abilities,
+                'image_url' => $data['sprites']['other']['official-artwork']['front_default'] ?? $data['sprites']['front_default'],
             ]
         );
     }

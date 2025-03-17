@@ -48,9 +48,9 @@ class PokemonTest extends TestCase
     /** @test */
     public function it_can_filter_by_type()
     {
-        Pokemon::factory()->create(['type' => 'grass']);
-        Pokemon::factory()->create(['type' => 'fire']);
-        Pokemon::factory()->create(['type' => 'water']);
+        Pokemon::factory()->create(['types' => ['grass']]);
+        Pokemon::factory()->create(['types' => ['fire']]);
+        Pokemon::factory()->create(['types' => ['water']]);
         
         $results = Pokemon::findWithFilters(null, 'fire')->get();
         
@@ -61,9 +61,9 @@ class PokemonTest extends TestCase
     /** @test */
     public function it_can_filter_by_name_and_type()
     {
-        Pokemon::factory()->create(['name' => 'bulbasaur', 'type' => 'grass']);
-        Pokemon::factory()->create(['name' => 'charmander', 'type' => 'fire']);
-        Pokemon::factory()->create(['name' => 'squirtle', 'type' => 'water']);
+        Pokemon::factory()->create(['name' => 'bulbasaur', 'types' => ['grass']]);
+        Pokemon::factory()->create(['name' => 'charmander', 'types' => ['fire']]);
+        Pokemon::factory()->create(['name' => 'squirtle', 'types' => ['water']]);
         
         $results = Pokemon::findWithFilters('char', 'fire')->get();
         
@@ -85,9 +85,10 @@ class PokemonTest extends TestCase
         $pokemonData = [
             'api_id' => 999,
             'name' => $uniquePokemonName,
-            'type' => 'test',
+            'types' => ['test'],
             'height' => 10,
-            'weight' => 10
+            'weight' => 10,
+            'abilities' => ['test-ability']
         ];
         
         // Mock do serviço de API
@@ -106,7 +107,7 @@ class PokemonTest extends TestCase
         $this->app->instance(PokemonApiService::class, $apiServiceMock);
         
         // Executa a busca
-        $results = Pokemon::findWithFilters($uniquePokemonName)->get();
+        $results = Pokemon::findWithFiltersAndApi($uniquePokemonName)->get();
         
         // Verifica se encontrou o Pokémon
         $this->assertCount(1, $results);
@@ -129,7 +130,7 @@ class PokemonTest extends TestCase
         $this->app->instance(PokemonApiService::class, $apiServiceMock);
         
         // Executa a busca
-        $results = Pokemon::findWithFilters('nonexistentpokemon')->get();
+        $results = Pokemon::findWithFiltersAndApi('nonexistentpokemon')->get();
         
         // Verifica se não encontrou nenhum Pokémon
         $this->assertCount(0, $results);

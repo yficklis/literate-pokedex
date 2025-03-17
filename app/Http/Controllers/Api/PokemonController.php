@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Pokemon;
+use App\Http\Resources\PokemonResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -21,10 +22,10 @@ class PokemonController extends Controller
         $type = $request->query('type');
         $perPage = $request->query('per_page', 20);
         
-        $pokemons = Pokemon::findWithFilters($name, $type)
+        $pokemons = Pokemon::findWithFiltersAndApi($name, $type)
             ->paginate($perPage);
         
-        return response()->json($pokemons);
+        return response()->json(PokemonResource::collection($pokemons)->response()->getData(true));
     }
     
     /**
@@ -43,15 +44,6 @@ class PokemonController extends Controller
             ], 404);
         }
         
-        return response()->json([
-            'id' => $pokemon->api_id,
-            'name' => $pokemon->name,
-            'type' => $pokemon->type,
-            'height' => $pokemon->height,
-            'height_cm' => $pokemon->height_in_cm,
-            'weight' => $pokemon->weight,
-            'weight_kg' => $pokemon->weight_in_kg,
-            'image_url' => $pokemon->image_url,
-        ]);
+        return response()->json(new PokemonResource($pokemon));
     }
 }
