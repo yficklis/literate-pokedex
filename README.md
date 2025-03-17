@@ -19,13 +19,20 @@ Este projeto consiste em uma aplicação web desenvolvida com Laravel 12, Inerti
     - `GET /api/pokemons`: Lista Pokémons com filtros por tipo ou nome.
     - `GET /api/pokemons/{id}`: Retorna detalhes de um Pokémon (nome, tipo, altura, peso).
     - `GET /api/pokemon-types`: Lista todos os tipos de Pokémon disponíveis.
+    - `GET /api/pokemons-autocomplete`: Retorna sugestões de nomes de Pokémon para autocomplete.
+    - `GET /api/pokemon-types-autocomplete`: Retorna sugestões de tipos de Pokémon para autocomplete.
 
 ### **Frontend**
 - **Listagem de Pokémons**:
     - Exibe Pokémons com paginação.
-    - Filtros por tipo ou nome.
+    - Filtros por tipo ou nome com autocomplete.
     - Interface responsiva com Tailwind CSS.
     - Busca inteligente que consulta a API pública quando um Pokémon não é encontrado localmente.
+- **Busca Avançada**:
+    - Campos de busca com autocomplete para nome e tipo.
+    - Sugestões em tempo real enquanto o usuário digita.
+    - Busca case-insensitive, aceitando qualquer variação de maiúsculas e minúsculas.
+    - Atualização automática da base de dados quando um Pokémon ou tipo não é encontrado localmente.
 - **Detalhes do Pokémon**:
     - Exibe informações detalhadas: nome, tipo, altura (em cm), peso (em kg).
     - Imagem do Pokémon.
@@ -248,20 +255,32 @@ sail artisan db:monitor
   - Web: `app/Http/Controllers/PokemonController.php`
   - API: `app/Http/Controllers/Api/PokemonController.php`
   - Tipos: `app/Http/Controllers/PokemonTypeController.php`
-- **Models**: `app/Models/Pokemon.php`
-- **Services**: `app/Services/PokemonApiService.php`
-- **Migrations**: `database/migrations/2025_03_17_011330_create_pokemon_table.php`
+- **Serviços**:
+  - API Pokémon: `app/Services/PokemonApiService.php`
+- **Recursos**:
+  - Pokémon: `app/Http/Resources/PokemonResource.php`
 
 ### **Frontend**
-- **Componentes**:
-  - `resources/js/Components/Pokemon/PokemonCard.vue`: Card de cada Pokémon
-  - `resources/js/Components/Pagination.vue`: Componente de paginação
 - **Páginas**:
-  - `resources/js/Pages/Pokemon/Index.vue`: Listagem de Pokémons
-  - `resources/js/Pages/Pokemon/Show.vue`: Detalhes do Pokémon
-  - `resources/js/Pages/Pokemon/Types.vue`: Tipos de Pokémon
-- **Layouts**:
-  - `resources/js/Layouts/MainLayout.vue`: Layout principal da aplicação
+  - Listagem: `resources/js/Pages/Pokemon/Index.vue`
+  - Detalhes: `resources/js/Pages/Pokemon/Show.vue`
+  - Tipos: `resources/js/Pages/Pokemon/Types.vue`
+- **Componentes**:
+  - Card: `resources/js/Components/Pokemon/PokemonCard.vue`
+  - Autocomplete: `resources/js/Components/Autocomplete.vue`
+  - Paginação: `resources/js/Components/Pagination.vue`
+
+## **Novas Funcionalidades (v2.0)**
+
+### **Busca com Autocomplete**
+- Campos de busca por nome e tipo agora oferecem sugestões em tempo real.
+- Integração com a API pública para buscar Pokémon e tipos não encontrados localmente.
+- Interface de usuário melhorada com feedback visual durante a busca.
+
+### **Melhorias na API**
+- Novos endpoints para autocomplete de nomes e tipos.
+- Busca case-insensitive para melhor experiência do usuário.
+- Atualização automática da base de dados com novos Pokémon e tipos.
 
 ## **Testes**
 

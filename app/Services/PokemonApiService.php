@@ -9,6 +9,12 @@ use Illuminate\Support\Facades\Log;
 class PokemonApiService
 {
     private const API_URL = 'https://pokeapi.co/api/v2/pokemon';
+    private const TYPE_API_URL = 'https://pokeapi.co/api/v2/type';
+    
+    /**
+     * URL base da API de Pokémon
+     */
+    private string $baseUrl = 'https://pokeapi.co/api/v2';
     
     /**
      * Busca e armazena os dados de Pokémons da API
@@ -63,15 +69,15 @@ class PokemonApiService
     }
     
     /**
-     * Busca um Pokémon por nome na API pública
-     * 
+     * Busca um Pokémon pelo nome na API
+     *
      * @param string $name Nome do Pokémon
-     * @return Pokemon|null Pokémon encontrado ou null se não encontrado
+     * @return Pokemon|null
      */
     public function findPokemonByName(string $name): ?Pokemon
     {
         try {
-            // Converte o nome para minúsculas e remove espaços
+            // Formata o nome para minúsculas e remove espaços
             $formattedName = strtolower(trim($name));
             
             // Busca o Pokémon na API
@@ -86,11 +92,111 @@ class PokemonApiService
             // Obtém os dados do Pokémon
             $pokemonData = $response->json();
             
+            // Se não houver dados, retorna null
+            if (!$pokemonData || !isset($pokemonData['id'])) {
+                Log::info("Dados do Pokémon '{$name}' não encontrados na API pública.");
+                return null;
+            }
+            
             // Armazena o Pokémon no banco de dados e retorna
             return $this->storePokemon($pokemonData);
         } catch (\Exception $e) {
             Log::error('Erro ao buscar Pokémon por nome: ' . $e->getMessage());
             return null;
+        }
+    }
+    
+    /**
+     * Busca Pokémons por tipo na API pública
+     * 
+     * @param string $type Tipo do Pokémon
+     * @return array Lista de Pokémons encontrados
+     */
+    public function findPokemonsByType(string $type): array
+    {
+        try {
+            $response = Http::get(self::TYPE_API_URL . '/' . strtolower(trim($type)));
+            
+            if (!$response->successful()) {
+                Log::info("Tipo de Pokémon não encontrado na API: {$type}");
+                return [];
+            }
+            
+            $data = $response->json();
+            
+            if (!$data || !isset($data['pokemon'])) {
+                Log::info("Dados do tipo {$type} não encontrados na API");
+                return [];
+            }
+            
+            $pokemons = [];
+            
+            // Limita a 10 Pokémon para não sobrecarregar
+            $pokemonList = array_slice($data['pokemon'], 0, 10);
+            
+            foreach ($pokemonList as $item) {
+                if (!isset($item['pokemon']['name'])) {
+                    continue;
+                }
+                
+                $pokemonName = $item['pokemon']['name'];
+                $response = Http::get(self::API_URL . '/' . $pokemonName);
+                
+                if (!$response->successful()) {
+                    continue;
+                }
+                
+                $pokemonData = $response->json();
+                
+                if (!$pokemonData || !isset($pokemonData['id'])) {
+                    continue;
+                }
+                
+                $pokemon = $this->storePokemon($pokemonData);
+                if ($pokemon) {
+                    $pokemons[] = $pokemon;
+                }
+            }
+            
+            return $pokemons;
+        } catch (\Exception $e) {
+            Log::error("Erro ao buscar Pokémon por tipo na API: {$e->getMessage()}");
+            return [];
+        }
+    }
+    
+    /**
+     * Busca todos os tipos de Pokémon disponíveis na API
+     * 
+     * @return array Lista de tipos de Pokémon
+     */
+    public function getAllTypes(): array
+    {
+        try {
+            $response = Http::get(self::TYPE_API_URL);
+            
+            if (!$response->successful()) {
+                Log::info("Não foi possível obter os tipos de Pokémon da API");
+                return [];
+            }
+            
+            $data = $response->json();
+            
+            if (!$data || !isset($data['results'])) {
+                Log::info("Dados dos tipos não encontrados na API");
+                return [];
+            }
+            
+            // Filtra apenas os tipos principais
+            $mainTypes = ['normal', 'fire', 'water', 'grass', 'electric'];
+            $types = array_map(function ($type) {
+                return $type['name'];
+            }, $data['results']);
+            
+            return array_values(array_intersect($mainTypes, $types));
+        } catch (\Exception $e) {
+            Log::error("Erro ao obter tipos de Pokémon da API: {$e->getMessage()}");
+            return [];
         }
     }
     
@@ -105,24 +211,34 @@ class PokemonApiService
         // Extrai os tipos do Pokémon
         $types = [];
         foreach ($data['types'] as $typeData) {
-            $types[] = $typeData['type']['name'];
+            if (isset($typeData['type']['name'])) {
+                $types[] = $typeData['type']['name'];
+            }
         }
         
         // Extrai as habilidades do Pokémon
         $abilities = [];
         foreach ($data['abilities'] as $abilityData) {
-            $abilities[] = $abilityData['ability']['name'];
+            if (isset($abilityData['ability']['name'])) {
+                $abilities[] = $abilityData['ability']['name'];
+            }
         }
         
+        // Obtém a URL da imagem
+        $imageUrl = $data['sprites']['other']['official-artwork']['front_default'] 
+            ?? $data['sprites']['front_default']
+            ?? null;
+        
+        // Cria ou atualiza o Pokémon
         return Pokemon::updateOrCreate(
             ['api_id' => $data['id']],
             [
-                'name' => ucfirst($data['name']),
+                'name' => strtolower($data['name']),
                 'types' => $types,
                 'height' => $data['height'],
                 'weight' => $data['weight'],
                 'abilities' => $abilities,
-                'image_url' => $data['sprites']['other']['official-artwork']['front_default'] ?? $data['sprites']['front_default'],
+                'image_url' => $imageUrl,
             ]
         );
     }

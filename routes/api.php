@@ -23,6 +23,9 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 // Rotas para Pokémons
 Route::get('/pokemons', [PokemonController::class, 'index']);
 Route::get('/pokemons/{id}', [PokemonController::class, 'show']);
+Route::get('/pokemons-autocomplete', [PokemonController::class, 'autocomplete']);
+Route::get('/types-autocomplete', [App\Http\Controllers\Api\TypeController::class, 'autocomplete']);
 
 // Rota para tipos de Pokémon
-Route::get('/pokemon-types', [PokemonTypeController::class, 'index']); 
+Route::get('/pokemon-types', [PokemonTypeController::class, 'index']);
+Route::get('/pokemon-types-autocomplete', [PokemonTypeController::class, 'autocomplete']); 

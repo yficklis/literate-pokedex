@@ -25,6 +25,18 @@ class PokemonController extends Controller
         // Busca os Pokémon com os filtros aplicados e tenta buscar na API se necessário
         $query = Pokemon::findWithFiltersAndApi($name, $type);
         
+        // Se estiver buscando por tipo e não encontrar resultados, tenta buscar na API pública
+        if ($type && $query->count() === 0) {
+            // Busca na API
+            $apiService = app(PokemonApiService::class);
+            $pokemons = $apiService->findPokemonsByType($type);
+            
+            // Se encontrou Pokémons na API, refaz a consulta para incluí-los nos resultados
+            if (!empty($pokemons)) {
+                $query = Pokemon::findWithFiltersAndApi($name, $type);
+            }
+        }
+        
         // Pagina os resultados
         $pokemons = $query->paginate(12)->withQueryString();
         
@@ -80,5 +92,34 @@ class PokemonController extends Controller
         return Inertia::render('Pokemon/Show', [
             'pokemon' => (new PokemonResource($pokemon))->toArray($request),
         ]);
+    }
+
+    /**
+     * Retorna uma lista de nomes de Pokémon para autocomplete
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function autocomplete(Request $request)
+    {
+        $query = $request->input('query', '');
+        
+        // Busca Pokémon pelo nome
+        $pokemons = Pokemon::where('name', 'LIKE', "%{$query}%")
+            ->orderBy('name')
+            ->limit(10)
+            ->pluck('name');
+        
+        // Se não encontrar resultados e tiver um termo de busca, tenta buscar na API
+        if ($pokemons->isEmpty() && !empty($query)) {
+            $apiService = app(PokemonApiService::class);
+            $pokemon = $apiService->findPokemonByName($query);
+            
+            if ($pokemon) {
+                $pokemons = collect([$pokemon->name]);
+            }
+        }
+        
+        return response()->json($pokemons);
     }
 }

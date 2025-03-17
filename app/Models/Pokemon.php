@@ -107,4 +107,50 @@ class Pokemon extends Model
         
         return $query;
     }
+    
+    /**
+     * Busca Pokémon com filtros
+     *
+     * @param array $filters
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public static function searchByFilters(array $filters = [])
+    {
+        $query = self::query();
+        
+        // Filtro por nome
+        if (!empty($filters['name'])) {
+            $query->where('name', 'LIKE', '%' . $filters['name'] . '%');
+        }
+        
+        // Filtro por tipo
+        if (!empty($filters['type'])) {
+            $query->whereJsonContains('types', $filters['type']);
+        }
+        
+        // Executa a consulta
+        $results = $query->get();
+        
+        // Se não encontrou resultados e tem filtro de nome, busca na API
+        if ($results->isEmpty() && !empty($filters['name'])) {
+            $apiService = app(\App\Services\PokemonApiService::class);
+            $pokemon = $apiService->findPokemonByName($filters['name']);
+            
+            if ($pokemon) {
+                $results = collect([$pokemon]);
+            }
+        }
+        
+        // Se não encontrou resultados e tem filtro de tipo, busca na API
+        if ($results->isEmpty() && !empty($filters['type'])) {
+            $apiService = app(\App\Services\PokemonApiService::class);
+            $pokemons = $apiService->findPokemonsByType($filters['type']);
+            
+            if (!empty($pokemons)) {
+                $results = collect($pokemons);
+            }
+        }
+        
+        return $results;
+    }
 }

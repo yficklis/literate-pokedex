@@ -8,6 +8,7 @@ import TextInput from '@/Components/TextInput.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
+import Autocomplete from '@/Components/Autocomplete.vue';
 
 const props = defineProps({
     pokemons: Object,
@@ -22,24 +23,41 @@ const search = ref({
 const debouncedSearch = ref(null);
 const isLoading = ref(false);
 
+// Função para lidar com a seleção de um nome de Pokémon
+const handleNameSelect = (name) => {
+    search.value.name = name;
+    submitSearch();
+};
+
+// Função para lidar com a seleção de um tipo de Pokémon
+const handleTypeSelect = (type) => {
+    search.value.type = type;
+    submitSearch();
+};
+
+// Função para enviar a busca
+const submitSearch = () => {
+    isLoading.value = true;
+    router.get(route('pokemons.index'), {
+        name: search.value.name || null,
+        type: search.value.type || null,
+    }, {
+        preserveState: true,
+        replace: true,
+        onSuccess: () => {
+            isLoading.value = false;
+        },
+        onError: () => {
+            isLoading.value = false;
+        }
+    });
+};
+
 watch(search, (value) => {
     clearTimeout(debouncedSearch.value);
     
     debouncedSearch.value = setTimeout(() => {
-        isLoading.value = true;
-        router.get(route('pokemons.index'), {
-            name: value.name || null,
-            type: value.type || null,
-        }, {
-            preserveState: true,
-            replace: true,
-            onSuccess: () => {
-                isLoading.value = false;
-            },
-            onError: () => {
-                isLoading.value = false;
-            }
-        });
+        submitSearch();
     }, 300);
 }, { deep: true });
 
@@ -113,41 +131,37 @@ onMounted(() => {
                         <!-- Filtros -->
                         <div class="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
-                                <InputLabel for="name" value="Nome" />
-                                <TextInput
-                                    id="name"
+                                <Autocomplete
                                     v-model="search.name"
-                                    type="text"
-                                    class="mt-1 block w-full"
+                                    label="Nome"
                                     placeholder="Buscar por nome"
+                                    endpoint="/pokemons-autocomplete"
                                     :disabled="isLoading"
+                                    @select="handleNameSelect"
                                 />
                             </div>
                             <div>
-                                <InputLabel for="type" value="Tipo" />
-                                <div class="flex space-x-2">
-                                    <TextInput
-                                        id="type"
-                                        v-model="search.type"
-                                        type="text"
-                                        class="mt-1 block w-full"
-                                        placeholder="Buscar por tipo"
-                                        :disabled="isLoading"
-                                    />
-                                    <Link 
-                                        :href="route('pokemon-types.index')" 
-                                        class="mt-1 inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-25 transition ease-in-out duration-150"
-                                        :class="{ 'opacity-50 cursor-not-allowed': isLoading }"
-                                        :disabled="isLoading"
-                                    >
-                                        Tipos
-                                    </Link>
-                                </div>
+                                <Autocomplete
+                                    v-model="search.type"
+                                    label="Tipo"
+                                    placeholder="Buscar por tipo"
+                                    endpoint="/pokemon-types-autocomplete"
+                                    :disabled="isLoading"
+                                    @select="handleTypeSelect"
+                                />
                             </div>
                             <div class="flex items-end space-x-2">
                                 <PrimaryButton @click="clearFilters" class="mt-1" :disabled="isLoading">
                                     Limpar Filtros
                                 </PrimaryButton>
+                                <Link 
+                                    :href="route('pokemon-types.index')" 
+                                    class="mt-1 inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-25 transition ease-in-out duration-150"
+                                    :class="{ 'opacity-50 cursor-not-allowed': isLoading }"
+                                    :disabled="isLoading"
+                                >
+                                    Tipos
+                                </Link>
                             </div>
                         </div>
 

@@ -151,4 +151,89 @@ class PokemonControllerTest extends TestCase
         $response->assertStatus(200);
         $response->assertJsonCount(0, 'data');
     }
+    
+    /** @test */
+    public function it_can_provide_autocomplete_suggestions_for_pokemon_names()
+    {
+        // Cria alguns Pokémon para o teste
+        Pokemon::factory()->create(['name' => 'Pikachu']);
+        Pokemon::factory()->create(['name' => 'Pidgey']);
+        Pokemon::factory()->create(['name' => 'Pidgeotto']);
+        Pokemon::factory()->create(['name' => 'Charizard']);
+        
+        // Executa a busca com o termo "pi"
+        $response = $this->getJson('/api/pokemons-autocomplete?query=pi');
+        
+        // Verifica se encontrou os Pokémon que começam com "pi"
+        $response->assertStatus(200);
+        $response->assertJsonCount(3);
+        $response->assertJsonFragment(['Pikachu']);
+        $response->assertJsonFragment(['Pidgey']);
+        $response->assertJsonFragment(['Pidgeotto']);
+    }
+    
+    /** @test */
+    public function it_searches_api_for_autocomplete_when_pokemon_not_found_locally()
+    {
+        // Limpa a tabela de Pokémon para garantir que não há Pokémon com esse nome
+        DB::table('pokemon')->truncate();
+        
+        // Nome único para garantir que não existe no banco
+        $uniquePokemonName = 'testpokemon_' . uniqid();
+        
+        // Mock do serviço de API
+        $apiServiceMock = Mockery::mock(PokemonApiService::class);
+        
+        // Configuração do mock para retornar um Pokémon quando chamado
+        $apiServiceMock->shouldReceive('findPokemonByName')
+            ->once()
+            ->with($uniquePokemonName)
+            ->andReturnUsing(function() use ($uniquePokemonName) {
+                // Cria o Pokémon apenas quando o método for chamado
+                return Pokemon::factory()->create([
+                    'name' => $uniquePokemonName,
+                    'types' => ['test'],
+                    'height' => 10,
+                    'weight' => 10,
+                    'abilities' => ['test-ability']
+                ]);
+            });
+        
+        // Registra o mock no container
+        $this->app->instance(PokemonApiService::class, $apiServiceMock);
+        
+        // Executa a busca
+        $response = $this->getJson('/api/pokemons-autocomplete?query=' . $uniquePokemonName);
+        
+        // Verifica se encontrou o Pokémon
+        $response->assertStatus(200);
+        $response->assertJsonCount(1);
+        $response->assertJsonFragment([$uniquePokemonName]);
+    }
+    
+    /** @test */
+    public function it_returns_empty_result_for_autocomplete_when_pokemon_not_found_in_api()
+    {
+        // Limpa a tabela de Pokémon para garantir que não há Pokémon com esse nome
+        DB::table('pokemon')->truncate();
+        
+        // Mock do serviço de API
+        $apiServiceMock = Mockery::mock(PokemonApiService::class);
+        
+        // Configuração do mock para retornar null quando chamado
+        $apiServiceMock->shouldReceive('findPokemonByName')
+            ->once()
+            ->with('nonexistentpokemon')
+            ->andReturn(null);
+        
+        // Registra o mock no container
+        $this->app->instance(PokemonApiService::class, $apiServiceMock);
+        
+        // Executa a busca
+        $response = $this->getJson('/api/pokemons-autocomplete?query=nonexistentpokemon');
+        
+        // Verifica se não encontrou nenhum Pokémon
+        $response->assertStatus(200);
+        $response->assertJsonCount(0);
+    }
 }

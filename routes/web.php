@@ -14,9 +14,11 @@ Route::get('/', function () {
 // Rotas para Pokémons
 Route::get('/pokemons', [PokemonController::class, 'index'])->name('pokemons.index');
 Route::get('/pokemons/{id}', [PokemonController::class, 'show'])->name('pokemons.show');
+Route::get('/pokemons-autocomplete', [PokemonController::class, 'autocomplete'])->name('pokemons.autocomplete');
 
 // Rota para tipos de Pokémon
 Route::get('/pokemon-types', [PokemonTypeController::class, 'index'])->name('pokemon-types.index');
+Route::get('/pokemon-types-autocomplete', [PokemonTypeController::class, 'autocomplete'])->name('pokemon-types.autocomplete');
 
 Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');

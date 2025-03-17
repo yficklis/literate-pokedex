@@ -135,4 +135,78 @@ class PokemonTest extends TestCase
         // Verifica se não encontrou nenhum Pokémon
         $this->assertCount(0, $results);
     }
+    
+    /** @test */
+    public function it_searches_api_for_pokemon_by_type()
+    {
+        // Limpa a tabela de Pokémon para garantir que não há Pokémon com esse tipo
+        DB::table('pokemon')->truncate();
+        
+        // Tipo único para garantir que não existe no banco
+        $uniqueType = 'uniquetype_' . uniqid();
+        
+        // Cria Pokémon para simular o retorno da API
+        $pokemon1 = Pokemon::factory()->make([
+            'name' => 'TestPokemon1',
+            'types' => [$uniqueType],
+            'height' => 10,
+            'weight' => 10,
+            'abilities' => ['test-ability']
+        ]);
+        
+        $pokemon2 = Pokemon::factory()->make([
+            'name' => 'TestPokemon2',
+            'types' => [$uniqueType],
+            'height' => 20,
+            'weight' => 20,
+            'abilities' => ['test-ability']
+        ]);
+        
+        // Mock do serviço de API
+        $apiServiceMock = Mockery::mock(PokemonApiService::class);
+        
+        // Configuração do mock para retornar os Pokémon quando chamado
+        $apiServiceMock->shouldReceive('findPokemonsByType')
+            ->once()
+            ->with($uniqueType)
+            ->andReturn([$pokemon1, $pokemon2]);
+        
+        // Registra o mock no container
+        $this->app->instance(PokemonApiService::class, $apiServiceMock);
+        
+        // Executa a busca
+        $result = Pokemon::searchByFilters(['type' => $uniqueType]);
+        
+        // Verifica se encontrou os Pokémon
+        $this->assertCount(2, $result);
+        $this->assertEquals('TestPokemon1', $result[0]->name);
+        $this->assertEquals('TestPokemon2', $result[1]->name);
+        $this->assertEquals([$uniqueType], $result[0]->types);
+        $this->assertEquals([$uniqueType], $result[1]->types);
+    }
+    
+    /** @test */
+    public function it_returns_empty_result_when_pokemon_type_not_found_in_api()
+    {
+        // Limpa a tabela de Pokémon para garantir que não há Pokémon com esse tipo
+        DB::table('pokemon')->truncate();
+        
+        // Mock do serviço de API
+        $apiServiceMock = Mockery::mock(PokemonApiService::class);
+        
+        // Configuração do mock para retornar array vazio quando chamado
+        $apiServiceMock->shouldReceive('findPokemonsByType')
+            ->once()
+            ->with('nonexistenttype')
+            ->andReturn([]);
+        
+        // Registra o mock no container
+        $this->app->instance(PokemonApiService::class, $apiServiceMock);
+        
+        // Executa a busca
+        $result = Pokemon::searchByFilters(['type' => 'nonexistenttype']);
+        
+        // Verifica se não encontrou nenhum Pokémon
+        $this->assertCount(0, $result);
+    }
 }
