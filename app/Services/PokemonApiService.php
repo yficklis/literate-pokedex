@@ -63,6 +63,38 @@ class PokemonApiService
     }
     
     /**
+     * Busca um Pokémon por nome na API pública
+     * 
+     * @param string $name Nome do Pokémon
+     * @return Pokemon|null Pokémon encontrado ou null se não encontrado
+     */
+    public function findPokemonByName(string $name): ?Pokemon
+    {
+        try {
+            // Converte o nome para minúsculas e remove espaços
+            $formattedName = strtolower(trim($name));
+            
+            // Busca o Pokémon na API
+            $response = Http::get(self::API_URL . '/' . $formattedName);
+            
+            // Se a resposta não for bem-sucedida, retorna null
+            if (!$response->successful()) {
+                Log::info("Pokémon '{$name}' não encontrado na API pública.");
+                return null;
+            }
+            
+            // Obtém os dados do Pokémon
+            $pokemonData = $response->json();
+            
+            // Armazena o Pokémon no banco de dados e retorna
+            return $this->storePokemon($pokemonData);
+        } catch (\Exception $e) {
+            Log::error('Erro ao buscar Pokémon por nome: ' . $e->getMessage());
+            return null;
+        }
+    }
+    
+    /**
      * Armazena os dados de um Pokémon no banco de dados
      * 
      * @param array $data Dados do Pokémon

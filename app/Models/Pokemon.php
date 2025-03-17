@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\PokemonApiService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -39,6 +40,7 @@ class Pokemon extends Model
 
     /**
      * Busca Pokémons com filtros opcionais
+     * Se não encontrar por nome no banco local, busca na API pública
      */
     public static function findWithFilters(?string $name = null, ?string $type = null)
     {
@@ -52,6 +54,20 @@ class Pokemon extends Model
             $query->where('type', 'LIKE', "%{$type}%");
         }
         
-        return $query->orderBy('api_id');
+        $result = $query->orderBy('api_id');
+        
+        // Se estiver buscando por nome e não encontrar resultados, tenta buscar na API pública
+        if ($name && $result->count() === 0) {
+            // Busca na API
+            $apiService = app(PokemonApiService::class);
+            $pokemon = $apiService->findPokemonByName($name);
+            
+            // Se encontrou o Pokémon na API, refaz a consulta para incluí-lo nos resultados
+            if ($pokemon) {
+                return self::findWithFilters($name, $type);
+            }
+        }
+        
+        return $result;
     }
 }

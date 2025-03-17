@@ -3,8 +3,11 @@
 namespace Tests\Feature\Api;
 
 use App\Models\Pokemon;
+use App\Services\PokemonApiService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Mockery;
 use Tests\TestCase;
+use Illuminate\Support\Facades\DB;
 
 class PokemonControllerTest extends TestCase
 {
@@ -78,5 +81,70 @@ class PokemonControllerTest extends TestCase
         $response = $this->getJson('/api/pokemons/9999');
         
         $response->assertStatus(404);
+    }
+    
+    /** @test */
+    public function it_searches_api_when_pokemon_not_found_locally()
+    {
+        // Limpa a tabela de Pokémon para garantir que não há Pokémon com esse nome
+        DB::table('pokemon')->truncate();
+        
+        // Nome único para garantir que não existe no banco
+        $uniquePokemonName = 'testpokemon_' . uniqid();
+        
+        // Dados do Pokémon para criar quando o mock for chamado
+        $pokemonData = [
+            'api_id' => 999,
+            'name' => $uniquePokemonName,
+            'type' => 'test',
+            'height' => 10,
+            'weight' => 10
+        ];
+        
+        // Mock do serviço de API
+        $apiServiceMock = Mockery::mock(PokemonApiService::class);
+        
+        // Configuração do mock para retornar um Pokémon quando chamado
+        $apiServiceMock->shouldReceive('findPokemonByName')
+            ->once()
+            ->with($uniquePokemonName)
+            ->andReturnUsing(function() use ($pokemonData) {
+                // Cria o Pokémon apenas quando o método for chamado
+                return Pokemon::factory()->create($pokemonData);
+            });
+        
+        // Registra o mock no container
+        $this->app->instance(PokemonApiService::class, $apiServiceMock);
+        
+        // Executa a busca
+        $response = $this->getJson('/api/pokemons?name=' . $uniquePokemonName);
+        
+        // Verifica se encontrou o Pokémon
+        $response->assertStatus(200);
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.name', $uniquePokemonName);
+    }
+    
+    /** @test */
+    public function it_returns_empty_result_when_pokemon_not_found_in_api()
+    {
+        // Mock do serviço de API
+        $apiServiceMock = Mockery::mock(PokemonApiService::class);
+        
+        // Configuração do mock para retornar null quando chamado
+        $apiServiceMock->shouldReceive('findPokemonByName')
+            ->once()
+            ->with('nonexistentpokemon')
+            ->andReturn(null);
+        
+        // Registra o mock no container
+        $this->app->instance(PokemonApiService::class, $apiServiceMock);
+        
+        // Executa a busca
+        $response = $this->getJson('/api/pokemons?name=nonexistentpokemon');
+        
+        // Verifica se não encontrou nenhum Pokémon
+        $response->assertStatus(200);
+        $response->assertJsonCount(0, 'data');
     }
 }

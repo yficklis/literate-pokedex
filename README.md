@@ -14,6 +14,7 @@ Este projeto consiste em uma aplicação web desenvolvida com Laravel 12, Inerti
 - **Consumo da PokeAPI**:
     - Comando Artisan `pokemon:fetch` para buscar e salvar dados de Pokémons no banco local.
     - Conversão de altura (decímetros para centímetros) e peso (hectogramas para quilogramas).
+    - Busca automática na API pública quando um Pokémon não é encontrado no banco local.
 - **API REST**:
     - `GET /api/pokemons`: Lista Pokémons com filtros por tipo ou nome.
     - `GET /api/pokemons/{id}`: Retorna detalhes de um Pokémon (nome, tipo, altura, peso).
@@ -24,6 +25,7 @@ Este projeto consiste em uma aplicação web desenvolvida com Laravel 12, Inerti
     - Exibe Pokémons com paginação.
     - Filtros por tipo ou nome.
     - Interface responsiva com Tailwind CSS.
+    - Busca inteligente que consulta a API pública quando um Pokémon não é encontrado localmente.
 - **Detalhes do Pokémon**:
     - Exibe informações detalhadas: nome, tipo, altura (em cm), peso (em kg).
     - Imagem do Pokémon.
@@ -143,6 +145,15 @@ php artisan test
 - **Repository Pattern**: Abstração do acesso aos dados.
 - **Service Layer**: Lógica de negócio encapsulada em serviços.
 - **Testes Automatizados**: Cobertura de testes para garantir a qualidade do código.
+
+## **Funcionalidade de Busca Inteligente**
+A aplicação implementa uma busca inteligente que:
+1. Primeiro procura o Pokémon no banco de dados local.
+2. Se não encontrar, consulta automaticamente a API pública do Pokémon.
+3. Se o Pokémon for encontrado na API, seus dados são armazenados no banco local antes de serem retornados.
+4. Se não for encontrado em nenhum lugar, exibe a mensagem "Nenhum Pokémon encontrado".
+
+Esta abordagem otimiza o desempenho, reduzindo chamadas desnecessárias à API externa e melhorando a experiência do usuário.
 
 ## **Possíveis Melhorias**
 - Implementar cache para reduzir chamadas à API externa.
